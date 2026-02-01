@@ -3,6 +3,8 @@
 ## Project Overview
 한국 주요 커뮤니티(dcinside, ruliweb, ppomppu, inven)의 인기 게시글을 수집하고 AI로 카테고리 분류하는 시스템.
 
+**GitHub**: https://github.com/apoora404/PickTrend
+
 ---
 
 ## Tech Stack
