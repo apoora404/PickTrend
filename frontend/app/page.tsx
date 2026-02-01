@@ -9,7 +9,35 @@ import RankingCard from '@/components/RankingCard'
 import BottomTabBar from '@/components/BottomTabBar'
 import FloatingButton from '@/components/FloatingButton'
 import TimeFilter from '@/components/TimeFilter'
+import AdSlot from '@/components/AdSlot'
 import { ChevronDown, RefreshCw, AlertCircle } from 'lucide-react'
+
+// 카드 리스트에 광고 삽입 헬퍼 함수
+function insertAdsIntoList(
+  rankings: Ranking[],
+  renderCard: (ranking: Ranking, index: number) => React.ReactNode,
+  adInterval: number = 5  // 5개마다 광고 삽입
+): React.ReactNode[] {
+  const result: React.ReactNode[] = []
+
+  rankings.forEach((ranking, index) => {
+    result.push(renderCard(ranking, index))
+
+    // 매 adInterval개 후에 광고 삽입 (마지막 아이템 제외)
+    if ((index + 1) % adInterval === 0 && index < rankings.length - 1) {
+      result.push(
+        <AdSlot
+          key={`ad-inline-${index}`}
+          position="inline"
+          slot={`main-inline-${Math.floor(index / adInterval)}`}
+          className="col-span-1 md:col-span-2 xl:col-span-3"
+        />
+      )
+    }
+  })
+
+  return result
+}
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
@@ -87,7 +115,7 @@ export default function Home() {
     {
       id: 'sample-1',
       keyword: '데이터를 수집 중입니다',
-      category: 'general',
+      category: 'issue',
       popularity_score: 0,
       summary: '백엔드에서 크롤링을 실행하면 이곳에 실시간 트렌드가 표시됩니다. python main.py --classify --save 명령으로 데이터를 수집해주세요.',
       source_urls: [],
@@ -156,15 +184,31 @@ export default function Home() {
             </div>
           )}
 
+          {/* 상단 광고 */}
+          <div className="px-4 mb-4">
+            <AdSlot position="top" slot="mobile-top" />
+          </div>
+
           <div className="px-4 pb-4 space-y-4">
             {loading ? (
               <LoadingSkeleton count={3} />
             ) : (
-              sortedRankings.map((ranking, index) => (
-                <RankingCard key={ranking.id} ranking={ranking} rank={index + 1} />
-              ))
+              insertAdsIntoList(
+                sortedRankings,
+                (ranking, index) => (
+                  <RankingCard key={ranking.id} ranking={ranking} rank={index + 1} />
+                ),
+                5
+              )
             )}
           </div>
+
+          {/* 하단 광고 */}
+          {!loading && sortedRankings.length > 0 && (
+            <div className="px-4 pb-4">
+              <AdSlot position="bottom" slot="mobile-bottom" />
+            </div>
+          )}
         </main>
 
         <BottomTabBar />
@@ -275,16 +319,32 @@ export default function Home() {
             <TimeFilter selected={selectedTimeRange} onSelect={setSelectedTimeRange} />
           </div>
 
+          {/* 상단 광고 */}
+          <div className="mb-6">
+            <AdSlot position="top" slot="desktop-top" />
+          </div>
+
           {/* 카드 그리드 */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {loading ? (
               <LoadingSkeleton count={6} />
             ) : (
-              sortedRankings.map((ranking, index) => (
-                <RankingCard key={ranking.id} ranking={ranking} rank={index + 1} />
-              ))
+              insertAdsIntoList(
+                sortedRankings,
+                (ranking, index) => (
+                  <RankingCard key={ranking.id} ranking={ranking} rank={index + 1} />
+                ),
+                6
+              )
             )}
           </div>
+
+          {/* 하단 광고 */}
+          {!loading && sortedRankings.length > 0 && (
+            <div className="mt-8">
+              <AdSlot position="bottom" slot="desktop-bottom" />
+            </div>
+          )}
 
           {/* 더 보기 버튼 */}
           {sortedRankings.length >= 6 && !isUsingFallback && (

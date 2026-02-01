@@ -70,6 +70,46 @@ export async function getRankings(
   return data || []
 }
 
+// 키워드로 단일 랭킹 조회 (상세 페이지용)
+export async function getRankingByKeyword(keyword: string): Promise<Ranking | null> {
+  const { data, error } = await supabase
+    .from('rankings')
+    .select('*')
+    .eq('keyword', keyword)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (error) {
+    console.error('Error fetching ranking by keyword:', error)
+    return null
+  }
+
+  return data
+}
+
+// 같은 카테고리의 관련 랭킹 조회 (상세 페이지 추천용)
+export async function getRelatedRankings(
+  category: Category,
+  excludeKeyword: string,
+  limit: number = 5
+): Promise<Ranking[]> {
+  const { data, error } = await supabase
+    .from('rankings')
+    .select('*')
+    .eq('category', category)
+    .neq('keyword', excludeKeyword)
+    .order('popularity_score', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('Error fetching related rankings:', error)
+    return []
+  }
+
+  return data || []
+}
+
 export async function getRawPosts(source?: string, limit: number = 100): Promise<RawPost[]> {
   let query = supabase
     .from('raw_posts')
