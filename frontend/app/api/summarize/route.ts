@@ -195,7 +195,7 @@ ${fetchedContent || '(본문 없음 - 키워드 기반으로 추론해)'}
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 1024,
         messages: [
           { role: 'user', content: prompt }
