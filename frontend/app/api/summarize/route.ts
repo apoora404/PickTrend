@@ -33,7 +33,7 @@ async function extractThumbnail(url: string): Promise<string | null> {
     if (twitterMatch?.[1]) return twitterMatch[1]
 
     // 3순위: 첫 번째 큰 img src (작은 아이콘 제외)
-    const imgMatches = html.matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi)
+    const imgMatches = Array.from(html.matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi))
     for (const match of imgMatches) {
       const src = match[1]
       // 작은 아이콘, 로고, 이모티콘 등 제외
