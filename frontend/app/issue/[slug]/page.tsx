@@ -1,9 +1,11 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ExternalLink, Clock, TrendingUp, Flame, Share2 } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Clock, TrendingUp, Flame } from 'lucide-react'
 import Link from 'next/link'
 import { getRankingByKeyword, getRelatedRankings, Ranking } from '@/lib/supabase'
 import AdSlot from '@/components/AdSlot'
+import AISummarySection from '@/components/AISummarySection'
+import ShareButton from '@/components/ShareButton'
 
 interface IssuePageProps {
   params: { slug: string }
@@ -142,16 +144,13 @@ export default async function IssuePage({ params }: IssuePageProps) {
         {/* 상단 광고 */}
         <AdSlot position="top" slot="issue-top" />
 
-        {/* AI 요약 */}
-        <section className="bg-bg-card rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="w-1 h-5 bg-primary rounded-full"></span>
-            AI 요약
-          </h2>
-          <p className="text-text-secondary leading-relaxed">
-            {ranking.summary || '이 이슈에 대한 요약 정보가 준비 중입니다.'}
-          </p>
-        </section>
+        {/* AI 요약 (동적 로딩) */}
+        <AISummarySection
+          keyword={ranking.keyword}
+          title={ranking.keyword}
+          sourceUrls={ranking.source_urls || []}
+          initialSummary={ranking.summary}
+        />
 
         {/* 트렌드 지표 */}
         <section className="bg-bg-card rounded-lg p-6">
@@ -252,21 +251,7 @@ export default async function IssuePage({ params }: IssuePageProps) {
 
         {/* 공유 버튼 */}
         <div className="flex justify-center">
-          <button
-            onClick={() => {
-              if (typeof navigator !== 'undefined' && navigator.share) {
-                navigator.share({
-                  title: ranking.keyword,
-                  text: ranking.summary || '',
-                  url: window.location.href,
-                })
-              }
-            }}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Share2 size={18} />
-            공유하기
-          </button>
+          <ShareButton title={ranking.keyword} text={ranking.summary || ''} />
         </div>
 
         {/* 푸터 */}
