@@ -30,7 +30,7 @@ def export_uncertain_posts(
     with open(filepath, "w", encoding="utf-8") as f:
         today = datetime.now().strftime("%Y-%m-%d %H:%M")
         f.write(f"===== {today} 수동 분류 필요 ({len(posts)}개) =====\n\n")
-        f.write("분류 옵션: politics / sports / celebrity / stock / general\n")
+        f.write("분류 옵션: politics / sports / celebrity / stock / game / issue\n")
         f.write("-" * 60 + "\n\n")
 
         for i, post in enumerate(posts, 1):
@@ -45,7 +45,7 @@ def export_uncertain_posts(
             f.write(f"   현재 신뢰도: {confidence:.1%}\n")
             if matched:
                 f.write(f"   매칭 키워드: {', '.join(matched)}\n")
-            f.write(f"   분류: _______ (politics/sports/celebrity/stock/general)\n")
+            f.write(f"   분류: _______ (politics/sports/celebrity/stock/game/issue)\n")
             f.write(f"   요약:\n")
             f.write(f"   _______________________________\n")
             f.write("\n")

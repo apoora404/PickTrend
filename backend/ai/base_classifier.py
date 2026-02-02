@@ -11,7 +11,7 @@ class ClassificationResult:
     matched_keywords: list[str]
 
 
-CATEGORIES = ["politics", "sports", "celebrity", "stock", "general"]
+CATEGORIES = ["politics", "sports", "celebrity", "stock", "game", "issue"]
 
 
 class BaseClassifier(ABC):

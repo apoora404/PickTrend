@@ -148,7 +148,6 @@ def save_rankings(posts: list[dict]) -> bool:
                 "popularity_score": post.get("views", 0) + post.get("likes", 0) * 10,
                 "summary": post.get("summary") or post.get("title", ""),
                 "source_urls": [post.get("url")] if post.get("url") else [],
-                "source": post.get("source"),  # 출처 필드 추가
                 "post_date": post.get("post_date"),  # 원본 작성일
                 "rank_change": 0,
             }
