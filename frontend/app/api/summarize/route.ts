@@ -113,6 +113,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'keyword is required' }, { status: 400 })
     }
 
+    // 환경변수 체크
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing env vars:', {
+        hasUrl: !!supabaseUrl,
+        hasServiceKey: !!supabaseServiceKey
+      })
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    }
+
     // Supabase 클라이언트 생성
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -234,7 +243,8 @@ ${fetchedContent || '(본문 없음 - 키워드 기반으로 추론해)'}
     })
 
   } catch (error) {
-    console.error('Summarize API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const errMsg = error instanceof Error ? error.message : String(error)
+    console.error('Summarize API error:', errMsg, error)
+    return NextResponse.json({ error: `Internal server error: ${errMsg}` }, { status: 500 })
   }
 }
