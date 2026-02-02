@@ -205,8 +205,12 @@ ${fetchedContent || '(본문 없음 - 키워드 기반으로 추론해)'}
 
     if (!response.ok) {
       const errorData = await response.text()
-      console.error('Anthropic API error:', errorData)
-      return NextResponse.json({ error: 'AI API call failed' }, { status: 500 })
+      console.error('Anthropic API error:', response.status, errorData)
+      return NextResponse.json({
+        error: 'AI API call failed',
+        status: response.status,
+        details: errorData.slice(0, 200)
+      }, { status: 500 })
     }
 
     const data = await response.json()
