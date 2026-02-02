@@ -155,9 +155,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ANTHROPIC_API_KEY not configured' }, { status: 500 })
     }
 
-    // MZ 스타일 프롬프트
+    // MZ 스타일 프롬프트 (이모지 + 찰진 말투)
     const prompt = `너는 한국 커뮤니티 트렌드를 요약하는 MZ세대 에디터야.
-빠르고 명확하게, 핵심만 전달해.
+존댓말 NO, 반말 OK. 짧고 임팩트 있게 핵심만 전달해.
 
 [키워드]
 ${title || keyword}
@@ -168,14 +168,15 @@ ${fetchedContent || '(본문 없음 - 키워드 기반으로 추론해)'}
 ---
 
 [AI 핵심 요약]
-아래 형식으로 정확히 3줄 불렛포인트로 작성:
-• 발단: (이 이슈가 터진 계기)
-• 전개: (어떻게 퍼졌는지, 논란 포인트)
-• 결론: (현재 상황 또는 예상 전개)
+아래 형식으로 정확히 3줄 작성 (이모지 필수):
+- 발단: (이 이슈가 터진 계기, 한 문장)
+- 전개: (어떻게 퍼졌는지, 논란 포인트)
+- 결론: (현재 상황 또는 전망)
 
 [커뮤니티 반응]
-가장 추천 많이 받은 반응이나 여론 흐름 1-2줄.
-"ㅋㅋ", "ㄹㅇ", "ㅇㅈ" 같은 커뮤 표현 OK.`
+가장 추천 많이 받은 반응 스타일로 1-2줄.
+"ㅋㅋ", "ㄹㅇ", "ㅇㅈ", "레전드", "역대급" 같은 커뮤 표현 적극 사용.
+따옴표로 댓글 느낌 연출 OK.`
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

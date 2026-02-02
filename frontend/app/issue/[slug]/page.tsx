@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, Clock, TrendingUp, Flame, Share2 } from 'lucid
 import Link from 'next/link'
 import { getRankingByKeyword, getRelatedRankings, Ranking } from '@/lib/supabase'
 import AdSlot from '@/components/AdSlot'
+import AISummarySection from './AISummarySection'
 
 interface IssuePageProps {
   params: { slug: string }
@@ -142,16 +143,15 @@ export default async function IssuePage({ params }: IssuePageProps) {
         {/* 상단 광고 */}
         <AdSlot position="top" slot="issue-top" />
 
-        {/* AI 요약 */}
-        <section className="bg-bg-card rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="w-1 h-5 bg-primary rounded-full"></span>
-            AI 요약
-          </h2>
-          <p className="text-text-secondary leading-relaxed">
-            {ranking.summary || '이 이슈에 대한 요약 정보가 준비 중입니다.'}
-          </p>
-        </section>
+        {/* AI 요약 + 커뮤니티 반응 (클라이언트 컴포넌트) */}
+        <AISummarySection
+          keyword={ranking.keyword}
+          title={ranking.keyword}
+          sourceUrls={ranking.source_urls || []}
+          initialSummary={ranking.summary}
+          initialAiSummary={ranking.ai_summary}
+          initialCommunityReaction={ranking.community_reaction}
+        />
 
         {/* 트렌드 지표 */}
         <section className="bg-bg-card rounded-lg p-6">
