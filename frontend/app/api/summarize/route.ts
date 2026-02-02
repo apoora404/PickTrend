@@ -341,14 +341,14 @@ ${commentsForPrompt}
     if (bestCommentsMatch) {
       const aiSelectedComments = bestCommentsMatch[1]
         .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.startsWith('"') || line.includes('"'))
-        .map(line => {
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.startsWith('"') || line.includes('"'))
+        .map((line: string) => {
           // "댓글 내용" 형태에서 내용 추출
           const match = line.match(/"([^"]+)"/)
           return match ? { content: match[1] } : null
         })
-        .filter((c): c is BestComment => c !== null)
+        .filter((c: BestComment | null): c is BestComment => c !== null)
         .slice(0, 3)
 
       if (aiSelectedComments.length > 0) {
