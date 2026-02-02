@@ -85,6 +85,7 @@ class BaseScraper(ABC):
         likes: int = 0,
         content: str = None,
         post_date: str = None,
+        thumbnail_url: str = None,
     ) -> dict:
         """게시글 데이터 포맷
 
@@ -95,6 +96,7 @@ class BaseScraper(ABC):
             likes: 추천수
             content: 본문 내용 (선택)
             post_date: 원본 게시글 작성일 (ISO 8601 형식, 선택)
+            thumbnail_url: 썸네일 이미지 URL (선택)
         """
         return {
             "source": self.source_name,
@@ -104,7 +106,70 @@ class BaseScraper(ABC):
             "likes": likes,
             "content": content,
             "post_date": post_date,
+            "thumbnail_url": thumbnail_url,
         }
+
+    def extract_thumbnail(self, row, selectors: list[str] = None) -> str | None:
+        """목록에서 썸네일 이미지 추출
+
+        Args:
+            row: BeautifulSoup 요소 (tr, li 등)
+            selectors: CSS 선택자 리스트 (순서대로 시도)
+
+        Returns:
+            썸네일 URL 또는 None
+        """
+        default_selectors = [
+            "img.thumb",
+            "img.thumbnail",
+            "td.thumbnail img",
+            "div.thumbnail img",
+            ".thum img",
+            "img[src*='thumb']",
+        ]
+        selectors = selectors or default_selectors
+
+        for selector in selectors:
+            img = row.select_one(selector)
+            if img:
+                src = img.get("src") or img.get("data-src")
+                if src:
+                    return self._normalize_image_url(src)
+
+        return None
+
+    def _normalize_image_url(self, src: str) -> str | None:
+        """이미지 URL 정규화
+
+        Args:
+            src: 원본 이미지 소스
+
+        Returns:
+            정규화된 URL 또는 None
+        """
+        if not src:
+            return None
+
+        # 작은 아이콘/로고/이모지 제외
+        excluded_patterns = [
+            'icon', 'logo', 'emoji', 'avatar', 'profile',
+            '.gif', '1x1', 'spacer', 'blank', 'loading'
+        ]
+        src_lower = src.lower()
+        if any(pattern in src_lower for pattern in excluded_patterns):
+            return None
+
+        # 프로토콜 상대 URL
+        if src.startswith("//"):
+            return f"https:{src}"
+        # 상대 경로
+        if src.startswith("/"):
+            return f"{self.base_url}{src}"
+        # 절대 URL
+        if src.startswith("http"):
+            return src
+
+        return None
 
     def _parse_date(self, date_str: str) -> str | None:
         """날짜 문자열을 ISO 8601 형식으로 변환

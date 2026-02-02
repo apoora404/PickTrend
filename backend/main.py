@@ -150,6 +150,7 @@ def save_rankings(posts: list[dict]) -> bool:
                 "source_urls": [post.get("url")] if post.get("url") else [],
                 "post_date": post.get("post_date"),  # 원본 작성일
                 "rank_change": 0,
+                "thumbnail_url": post.get("thumbnail_url"),  # 썸네일 이미지
             }
             rankings.append(ranking)
 

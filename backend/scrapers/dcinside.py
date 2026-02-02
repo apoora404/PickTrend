@@ -73,12 +73,20 @@ class DcinsideScraper(BaseScraper):
                     date_str = date_elem.get("title") or date_elem.get_text(strip=True)
                     post_date = self._parse_date(date_str)
 
+                # 썸네일 추출 (제목 옆 이미지 아이콘 또는 목록 이미지)
+                thumbnail_url = self.extract_thumbnail(row, [
+                    "td.gall_tit img",
+                    "img.icon_pic",
+                    "img[src*='thumb']",
+                ])
+
                 posts.append(self.format_post(
                     title=title,
                     url=post_url,
                     views=views,
                     likes=likes,
                     post_date=post_date,
+                    thumbnail_url=thumbnail_url,
                 ))
 
             except Exception as e:

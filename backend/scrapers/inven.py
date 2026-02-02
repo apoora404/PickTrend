@@ -1,5 +1,7 @@
 """인벤 뉴스/이슈 크롤러"""
 import re
+import random
+import time
 from .base_scraper import BaseScraper
 
 
@@ -13,6 +15,29 @@ class InvenScraper(BaseScraper):
     @property
     def base_url(self) -> str:
         return "https://www.inven.co.kr"
+
+    def _extract_og_image(self, url: str) -> str | None:
+        """기사 페이지에서 og:image 추출 (최대 3개만 시도)"""
+        try:
+            soup = self.fetch_page(url, delay=True)
+            if not soup:
+                return None
+
+            # og:image 메타 태그 찾기
+            og_image = soup.find("meta", property="og:image")
+            if og_image and og_image.get("content"):
+                return og_image["content"]
+
+            # 대체: 기사 본문 첫 이미지
+            article_img = soup.select_one("div.article_content img, div.news_content img")
+            if article_img:
+                src = article_img.get("src") or article_img.get("data-src")
+                if src:
+                    return self._normalize_image_url(src)
+
+            return None
+        except Exception:
+            return None
 
     def scrape(self, page: int = 1) -> list[dict]:
         """뉴스 페이지 크롤링"""
@@ -29,6 +54,7 @@ class InvenScraper(BaseScraper):
         article_links = soup.find_all("a", href=re.compile(r"/webzine/news/\?news=\d+"))
 
         seen_urls = set()  # 중복 제거용
+        thumbnail_fetch_count = 0  # og:image 추출 횟수 제한
 
         for link in article_links:
             try:
@@ -64,12 +90,28 @@ class InvenScraper(BaseScraper):
                 from datetime import date
                 post_date = f"{date.today().isoformat()}T00:00:00"
 
+                # 썸네일: 목록의 img 태그에서 먼저 시도
+                thumbnail_url = None
+                # 링크 부모 요소에서 이미지 찾기
+                parent = link.find_parent(["li", "div", "article"])
+                if parent:
+                    img = parent.find("img")
+                    if img:
+                        src = img.get("src") or img.get("data-src")
+                        thumbnail_url = self._normalize_image_url(src) if src else None
+
+                # 목록에서 못 찾으면 상위 3개 기사만 og:image 추출 (속도 위해)
+                if not thumbnail_url and thumbnail_fetch_count < 3:
+                    thumbnail_url = self._extract_og_image(post_url)
+                    thumbnail_fetch_count += 1
+
                 posts.append(self.format_post(
                     title=title,
                     url=post_url,
                     views=0,
                     likes=0,
                     post_date=post_date,
+                    thumbnail_url=thumbnail_url,
                 ))
 
             except Exception as e:

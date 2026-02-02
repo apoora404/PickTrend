@@ -74,12 +74,20 @@ class RuliwebScraper(BaseScraper):
                     date_str = date_elem.get_text(strip=True)
                     post_date = self._parse_date(date_str)
 
+                # 썸네일 추출 (베스트 게시판은 썸네일이 있을 수 있음)
+                thumbnail_url = self.extract_thumbnail(row, [
+                    "td.thumbnail img",
+                    "div.thumbnail img",
+                    "img.thumbnail",
+                ])
+
                 posts.append(self.format_post(
                     title=title,
                     url=post_url,
                     views=views,
                     likes=likes,
                     post_date=post_date,
+                    thumbnail_url=thumbnail_url,
                 ))
 
             except Exception as e:

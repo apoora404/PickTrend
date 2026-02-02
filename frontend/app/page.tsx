@@ -76,6 +76,46 @@ export default function Home() {
     setViewMode(prev => prev === 'mobile' ? 'desktop' : 'mobile')
   }
 
+  // 썸네일이 없는 항목 백그라운드 추출
+  const fetchMissingThumbnails = useCallback(async (rankings: Ranking[]) => {
+    const itemsWithoutThumbnail = rankings.filter(
+      r => !r.thumbnail_url && r.source_urls?.length
+    )
+
+    // 최대 5개만 백그라운드 처리 (부하 방지)
+    const itemsToProcess = itemsWithoutThumbnail.slice(0, 5)
+
+    for (const ranking of itemsToProcess) {
+      try {
+        const res = await fetch('/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            keyword: ranking.keyword,
+            source_urls: ranking.source_urls,
+            thumbnail_only: true
+          })
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          if (data.thumbnail_url) {
+            // 로컬 상태 업데이트 (리렌더링)
+            setRankings(prev =>
+              prev.map(r =>
+                r.keyword === ranking.keyword
+                  ? { ...r, thumbnail_url: data.thumbnail_url }
+                  : r
+              )
+            )
+          }
+        }
+      } catch {
+        // 개별 실패는 무시
+      }
+    }
+  }, [])
+
   // 데이터 로드
   const loadRankings = useCallback(async () => {
     setLoading(true)
@@ -88,6 +128,9 @@ export default function Home() {
 
       if (data.length === 0) {
         console.log('No data from Supabase, using fallback')
+      } else {
+        // 백그라운드에서 썸네일 없는 항목 추출
+        fetchMissingThumbnails(data)
       }
     } catch (err) {
       console.error('Failed to load rankings:', err)
@@ -95,7 +138,7 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }, [selectedCategory, selectedTimeRange])
+  }, [selectedCategory, selectedTimeRange, fetchMissingThumbnails])
 
   useEffect(() => {
     loadRankings()
@@ -196,7 +239,7 @@ export default function Home() {
               insertAdsIntoList(
                 sortedRankings,
                 (ranking, index) => (
-                  <RankingCard key={ranking.id} ranking={ranking} rank={index + 1} />
+                  <RankingCard key={ranking.id} ranking={ranking} rank={index + 1} priority={index < 3} />
                 ),
                 5
               )
@@ -332,7 +375,7 @@ export default function Home() {
               insertAdsIntoList(
                 sortedRankings,
                 (ranking, index) => (
-                  <RankingCard key={ranking.id} ranking={ranking} rank={index + 1} />
+                  <RankingCard key={ranking.id} ranking={ranking} rank={index + 1} priority={index < 3} />
                 ),
                 6
               )

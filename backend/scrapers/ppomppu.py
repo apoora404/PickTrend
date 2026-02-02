@@ -83,12 +83,21 @@ class PpomppuScraper(BaseScraper):
                     date_str = tds[3].get_text(strip=True)
                     post_date = self._parse_date(date_str)
 
+                # 썸네일 추출 (뽐뿌 핫딜은 상품 이미지가 있음)
+                thumbnail_url = self.extract_thumbnail(row, [
+                    "img.thumb",
+                    "a[href*='view.php'] img",
+                    "td img[src*='thumb']",
+                    "td img[src*='thum']",
+                ])
+
                 posts.append(self.format_post(
                     title=title,
                     url=post_url,
                     views=views,
                     likes=likes,
                     post_date=post_date,
+                    thumbnail_url=thumbnail_url,
                 ))
 
             except Exception as e:

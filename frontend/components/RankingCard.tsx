@@ -58,13 +58,37 @@ const placeholderImages: Record<string, string> = {
   issue: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=250&fit=crop',
 }
 
-export default function RankingCard({ ranking, rank }: RankingCardProps) {
+// 이미지 URL을 프록시 URL로 변환 (Hotlinking 우회)
+const getProxiedImageUrl = (url: string | null | undefined, fallback: string): string => {
+  // null/undefined/빈 문자열이면 fallback 반환
+  if (!url || url.trim() === '') {
+    return fallback
+  }
+  // Unsplash는 직접 로딩 허용
+  if (url.includes('unsplash.com')) {
+    return url
+  }
+  // 이미 프록시 URL이면 그대로 반환
+  if (url.startsWith('/api/image')) {
+    return url
+  }
+  // 외부 이미지는 프록시 경유
+  return `/api/image?url=${encodeURIComponent(url)}`
+}
+
+// 프록시 URL인지 확인
+const isProxyUrl = (url: string): boolean => url.startsWith('/api/image')
+
+export default function RankingCard({ ranking, rank, priority = false }: RankingCardProps & { priority?: boolean }) {
   const badge = categoryBadges[ranking.category] || categoryBadges.issue
   const tags = categoryTags[ranking.category] || categoryTags.issue
   const placeholderUrl = placeholderImages[ranking.category] || placeholderImages.issue
 
   // 이미지 URL 우선순위: thumbnail_url > image_url > placeholder
-  const primaryImageUrl = ranking.thumbnail_url || ranking.image_url || placeholderUrl
+  const primaryImageUrl = getProxiedImageUrl(
+    ranking.thumbnail_url || ranking.image_url,
+    placeholderUrl
+  )
 
   // 이미지 로드 실패 시 fallback
   const [imageUrl, setImageUrl] = useState(primaryImageUrl)
@@ -73,7 +97,7 @@ export default function RankingCard({ ranking, rank }: RankingCardProps) {
   const handleImageError = () => {
     if (!imageError) {
       setImageError(true)
-      setImageUrl(placeholderUrl)
+      setImageUrl(placeholderUrl) // Unsplash placeholder는 프록시 불필요
     }
   }
 
@@ -92,34 +116,25 @@ export default function RankingCard({ ranking, rank }: RankingCardProps) {
   // 상세 페이지 URL
   const detailUrl = `/issue/${encodeURIComponent(ranking.keyword)}`
 
-  // 외부 이미지인지 확인 (next/image 최적화 여부)
-  const isExternalImage = imageUrl.startsWith('http')
+  // 프록시 또는 외부 이미지인지 확인 (unoptimized 필요 여부)
+  const needsUnoptimized = imageUrl.startsWith('http') || isProxyUrl(imageUrl)
 
   return (
     <article className="bg-bg-card rounded-3xl shadow-card card-hover overflow-hidden group">
       {/* 썸네일 이미지 - 상세 페이지로 연결 */}
       <Link href={detailUrl}>
         <div className="relative w-full aspect-[16/10] bg-gray-200 overflow-hidden cursor-pointer">
-          {isExternalImage ? (
-            <Image
-              src={imageUrl}
-              alt={ranking.keyword}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              unoptimized
-              onError={handleImageError}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-          ) : (
-            <Image
-              src={imageUrl}
-              alt={ranking.keyword}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              onError={handleImageError}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-          )}
+          <Image
+            src={imageUrl}
+            alt={ranking.keyword}
+            width={400}
+            height={250}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            unoptimized={needsUnoptimized}
+            onError={handleImageError}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+            priority={priority}
+          />
           {/* 카테고리 뱃지 */}
           <span className={`absolute top-3 left-3 px-3 py-1 text-xs font-bold rounded-full ${badge.bgColor} ${badge.textColor}`}>
             {badge.label}
