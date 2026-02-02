@@ -3,6 +3,8 @@
 import { Ranking } from '@/lib/supabase'
 import { Heart, Eye, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
+import { useState } from 'react'
 
 interface RankingCardProps {
   ranking: Ranking
@@ -46,7 +48,7 @@ const categoryTags: Record<string, string[]> = {
   issue: ['#실시간', '#인기', '#트렌드'],
 }
 
-// 플레이스홀더 이미지
+// 플레이스홀더 이미지 (fallback)
 const placeholderImages: Record<string, string> = {
   politics: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&h=250&fit=crop',
   sports: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&h=250&fit=crop',
@@ -57,9 +59,23 @@ const placeholderImages: Record<string, string> = {
 }
 
 export default function RankingCard({ ranking, rank }: RankingCardProps) {
-  const badge = categoryBadges[ranking.category] || categoryBadges.general
-  const tags = categoryTags[ranking.category] || categoryTags.general
-  const imageUrl = ranking.image_url || placeholderImages[ranking.category] || placeholderImages.general
+  const badge = categoryBadges[ranking.category] || categoryBadges.issue
+  const tags = categoryTags[ranking.category] || categoryTags.issue
+  const placeholderUrl = placeholderImages[ranking.category] || placeholderImages.issue
+
+  // 이미지 URL 우선순위: thumbnail_url > image_url > placeholder
+  const primaryImageUrl = ranking.thumbnail_url || ranking.image_url || placeholderUrl
+
+  // 이미지 로드 실패 시 fallback
+  const [imageUrl, setImageUrl] = useState(primaryImageUrl)
+  const [imageError, setImageError] = useState(false)
+
+  const handleImageError = () => {
+    if (!imageError) {
+      setImageError(true)
+      setImageUrl(placeholderUrl)
+    }
+  }
 
   // 출처 정보 추출
   const sourceUrl = ranking.source_urls?.[0] || null
@@ -76,17 +92,34 @@ export default function RankingCard({ ranking, rank }: RankingCardProps) {
   // 상세 페이지 URL
   const detailUrl = `/issue/${encodeURIComponent(ranking.keyword)}`
 
+  // 외부 이미지인지 확인 (next/image 최적화 여부)
+  const isExternalImage = imageUrl.startsWith('http')
+
   return (
     <article className="bg-bg-card rounded-3xl shadow-card card-hover overflow-hidden group">
       {/* 썸네일 이미지 - 상세 페이지로 연결 */}
       <Link href={detailUrl}>
         <div className="relative w-full aspect-[16/10] bg-gray-200 overflow-hidden cursor-pointer">
-          <img
-            src={imageUrl}
-            alt={ranking.keyword}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
+          {isExternalImage ? (
+            <Image
+              src={imageUrl}
+              alt={ranking.keyword}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              unoptimized
+              onError={handleImageError}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          ) : (
+            <Image
+              src={imageUrl}
+              alt={ranking.keyword}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              onError={handleImageError}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          )}
           {/* 카테고리 뱃지 */}
           <span className={`absolute top-3 left-3 px-3 py-1 text-xs font-bold rounded-full ${badge.bgColor} ${badge.textColor}`}>
             {badge.label}

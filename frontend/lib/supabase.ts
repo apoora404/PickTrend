@@ -14,7 +14,10 @@ export interface Ranking {
   category: Category
   popularity_score: number
   summary: string | null
-  image_url?: string | null  // 썸네일 이미지 URL
+  image_url?: string | null  // 기존 이미지 URL (fallback)
+  thumbnail_url?: string | null  // AI 추출 썸네일 (우선)
+  ai_summary?: string | null  // AI 생성 MZ 스타일 요약
+  community_reaction?: string | null  // 커뮤니티 반응 요약
   source_urls: string[]
   source?: string  // 출처 (dcinside, ruliweb, ppomppu, inven)
   rank_change: number

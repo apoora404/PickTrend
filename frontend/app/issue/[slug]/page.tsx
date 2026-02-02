@@ -4,7 +4,7 @@ import { ArrowLeft, ExternalLink, Clock, TrendingUp, Flame } from 'lucide-react'
 import Link from 'next/link'
 import { getRankingByKeyword, getRelatedRankings, Ranking } from '@/lib/supabase'
 import AdSlot from '@/components/AdSlot'
-import AISummarySection from '@/components/AISummarySection'
+import AISummarySection from './AISummarySection'
 import ShareButton from '@/components/ShareButton'
 
 interface IssuePageProps {
@@ -144,12 +144,14 @@ export default async function IssuePage({ params }: IssuePageProps) {
         {/* 상단 광고 */}
         <AdSlot position="top" slot="issue-top" />
 
-        {/* AI 요약 (동적 로딩) */}
+        {/* AI 요약 + 커뮤니티 반응 (클라이언트 컴포넌트) */}
         <AISummarySection
           keyword={ranking.keyword}
           title={ranking.keyword}
           sourceUrls={ranking.source_urls || []}
           initialSummary={ranking.summary}
+          initialAiSummary={ranking.ai_summary}
+          initialCommunityReaction={ranking.community_reaction}
         />
 
         {/* 트렌드 지표 */}
