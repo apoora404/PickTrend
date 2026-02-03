@@ -232,6 +232,30 @@ class BaseScraper(ABC):
                 today = date.today()
                 return f"{today.isoformat()}T{date_str[:5]}:00"
 
+            # 형식 6: "X 분 전" 또는 "X분 전" → 현재 시간 - X분
+            min_match = re.match(r'(\d+)\s*분\s*전', date_str)
+            if min_match:
+                from datetime import timedelta
+                minutes = int(min_match.group(1))
+                dt = datetime.now() - timedelta(minutes=minutes)
+                return dt.isoformat()
+
+            # 형식 7: "X 시간 전" 또는 "X시간 전" → 현재 시간 - X시간
+            hour_match = re.match(r'(\d+)\s*시간\s*전', date_str)
+            if hour_match:
+                from datetime import timedelta
+                hours = int(hour_match.group(1))
+                dt = datetime.now() - timedelta(hours=hours)
+                return dt.isoformat()
+
+            # 형식 8: "X 일 전" 또는 "X일 전" → 현재 시간 - X일
+            day_match = re.match(r'(\d+)\s*일\s*전', date_str)
+            if day_match:
+                from datetime import timedelta
+                days = int(day_match.group(1))
+                dt = datetime.now() - timedelta(days=days)
+                return dt.isoformat()
+
             # 파싱 실패 로그
             print(f"[{self.source_name}] 날짜 파싱 실패: '{original_str}'")
             return None
