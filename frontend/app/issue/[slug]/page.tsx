@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { getRankingByKeyword, getRelatedRankings, Ranking } from '@/lib/supabase'
 import AdSlot from '@/components/AdSlot'
 import AISummarySection from './AISummarySection'
+import BestCommentsSection from './BestCommentsSection'
 import ShareButton from '@/components/ShareButton'
 
 interface IssuePageProps {
@@ -141,6 +142,9 @@ export default async function IssuePage({ params }: IssuePageProps) {
           </div>
         </header>
 
+        {/* 베스트 댓글 (최상단 - DB에서 직접 가져옴, API 무관) */}
+        <BestCommentsSection comments={ranking.best_comments} />
+
         {/* 상단 광고 */}
         <AdSlot position="top" slot="issue-top" />
 
@@ -182,9 +186,6 @@ export default async function IssuePage({ params }: IssuePageProps) {
           </div>
         </section>
 
-        {/* 중간 광고 */}
-        <AdSlot position="middle" slot="issue-middle" />
-
         {/* 출처 목록 */}
         <section className="bg-bg-card rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -222,15 +223,12 @@ export default async function IssuePage({ params }: IssuePageProps) {
           )}
         </section>
 
-        {/* 하단 광고 */}
-        <AdSlot position="bottom" slot="issue-bottom" />
-
         {/* 관련 이슈 */}
         {relatedRankings.length > 0 && (
           <section className="bg-bg-card rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <span className="w-1 h-5 bg-primary rounded-full"></span>
-              관련 {categoryLabel} 이슈
+              {ranking.category === 'issue' ? '관련 이슈' : `관련 ${categoryLabel} 이슈`}
             </h2>
             <div className="space-y-2">
               {relatedRankings.map((related) => (
@@ -250,6 +248,9 @@ export default async function IssuePage({ params }: IssuePageProps) {
             </div>
           </section>
         )}
+
+        {/* 하단 광고 (관련 이슈 바로 다음) */}
+        <AdSlot position="bottom" slot="issue-bottom" />
 
         {/* 공유 버튼 */}
         <div className="flex justify-center">

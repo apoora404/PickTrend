@@ -77,16 +77,7 @@ const nextConfig = {
         protocol: 'http',
         hostname: '*.inven.co.kr',
       },
-      // 일반 HTTPS 이미지 (다양한 출처)
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-      // HTTP 이미지 (fallback)
-      {
-        protocol: 'http',
-        hostname: '**',
-      },
+      // 이미지 프록시는 /api/image를 통해 처리하므로 와일드카드 제거
     ],
   },
 }

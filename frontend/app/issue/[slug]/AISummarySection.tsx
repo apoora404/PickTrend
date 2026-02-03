@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Sparkles, MessageSquare, RefreshCw } from 'lucide-react'
+import AdSlot from '@/components/AdSlot'
 
 interface AISummarySectionProps {
   keyword: string
@@ -96,43 +97,35 @@ export default function AISummarySection({
     )
   }
 
+  // AI 요약 첫 줄만 추출 (1줄 요약용)
+  const firstLineSummary = aiSummary
+    ? aiSummary.split('\n').filter(line => line.trim())[0] || aiSummary
+    : initialSummary || '이 이슈에 대한 요약 정보가 준비 중입니다.'
+
   return (
     <>
-      {/* AI 요약 섹션 */}
-      <section className="bg-bg-card rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="w-1 h-5 bg-primary rounded-full"></span>
-            <Sparkles size={18} className="text-yellow-500" />
-            AI 요약
-          </h2>
+      {/* AI 한줄 요약 (간결하게) */}
+      <section className="bg-bg-card rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-yellow-500 flex-shrink-0" />
+          <p className="text-sm text-text-secondary leading-relaxed flex-1">
+            {firstLineSummary}
+          </p>
           {aiSummary && (
             <button
               onClick={() => fetchSummary(true)}
               disabled={loading}
-              className="text-xs text-text-secondary hover:text-primary flex items-center gap-1 transition-colors"
+              className="text-xs text-text-secondary hover:text-primary flex items-center gap-1 transition-colors flex-shrink-0"
               title="요약 새로고침"
             >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              새로고침
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             </button>
           )}
         </div>
-
-        {aiSummary ? (
-          <div className="space-y-2">
-            {aiSummary.split('\n').filter(line => line.trim()).map((line, index) => (
-              <p key={index} className="text-text-secondary leading-relaxed">
-                {line}
-              </p>
-            ))}
-          </div>
-        ) : (
-          <p className="text-text-secondary leading-relaxed">
-            {initialSummary || '이 이슈에 대한 요약 정보가 준비 중입니다.'}
-          </p>
-        )}
       </section>
+
+      {/* 중간 광고 */}
+      <AdSlot position="middle" slot="issue-middle" />
 
       {/* 커뮤니티 반응 섹션 */}
       {communityReaction && (

@@ -8,6 +8,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export type Category = 'politics' | 'sports' | 'celebrity' | 'stock' | 'game' | 'issue'
 export type TimeRange = 'realtime' | '1h' | '12h' | '24h'
 
+// 베스트 댓글 타입
+export interface BestComment {
+  author?: string
+  content: string
+  likes?: number
+}
+
 export interface Ranking {
   id: string
   keyword: string
@@ -18,6 +25,7 @@ export interface Ranking {
   thumbnail_url?: string | null  // AI 추출 썸네일 (우선)
   ai_summary?: string | null  // AI 생성 MZ 스타일 요약
   community_reaction?: string | null  // 커뮤니티 반응 요약
+  best_comments?: BestComment[] | null  // 베스트 댓글
   source_urls: string[]
   source?: string  // 출처 (dcinside, ruliweb, ppomppu, inven)
   rank_change: number
@@ -55,7 +63,7 @@ export async function getRankings(
   let query = supabase
     .from('rankings')
     .select('*')
-    .gte('created_at', cutoffDate.toISOString())
+    .gte('updated_at', cutoffDate.toISOString())
     .order('popularity_score', { ascending: false })
     .limit(limit)
 

@@ -192,9 +192,19 @@ class BaseScraper(ABC):
         if not date_str:
             return None
 
+        original_str = date_str  # 디버깅용 원본 저장
         date_str = date_str.strip()
 
         try:
+            # 형식 0: "26/02/02" 또는 "26.02.02" (YY/MM/DD 또는 YY.MM.DD)
+            yy_match = re.match(r'^(\d{2})[-./](\d{2})[-./](\d{2})$', date_str)
+            if yy_match:
+                year, month, day = yy_match.groups()
+                year = int(year)
+                # 2000년대로 변환 (26 → 2026)
+                year = 2000 + year if year < 100 else year
+                return f"{year}-{month}-{day}T00:00:00"
+
             # 형식 1: 전체 날짜시간 "2026-02-01 12:34:56"
             if re.match(r'\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}', date_str):
                 dt = datetime.strptime(date_str[:16], '%Y-%m-%d %H:%M')
@@ -222,7 +232,10 @@ class BaseScraper(ABC):
                 today = date.today()
                 return f"{today.isoformat()}T{date_str[:5]}:00"
 
+            # 파싱 실패 로그
+            print(f"[{self.source_name}] 날짜 파싱 실패: '{original_str}'")
             return None
 
-        except Exception:
+        except Exception as e:
+            print(f"[{self.source_name}] 날짜 파싱 예외: '{original_str}' -> {e}")
             return None

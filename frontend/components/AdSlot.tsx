@@ -1,5 +1,5 @@
 interface AdSlotProps {
-  position: 'top' | 'middle' | 'bottom' | 'inline'
+  position: 'top' | 'middle' | 'bottom' | 'inline' | 'sidebar'
   slot?: string  // AdSense 슬롯 ID용
   className?: string
 }
@@ -10,6 +10,7 @@ const positionStyles: Record<string, string> = {
   middle: 'min-h-[250px] md:min-h-[280px]',  // 직사각형
   bottom: 'min-h-[90px] md:min-h-[100px]',   // 리더보드
   inline: 'min-h-[100px]',                    // 인라인 (리스트 중간용)
+  sidebar: 'min-h-[250px]',                   // 사이드바 (PC 전용)
 }
 
 export default function AdSlot({ position, slot, className = '' }: AdSlotProps) {

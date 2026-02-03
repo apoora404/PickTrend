@@ -150,7 +150,7 @@ Register-ScheduledTask -TaskName "MemeBoard" -Action $action -Trigger $trigger
 
 ---
 
-## 현재 진행상황 (2026-02-02)
+## 현재 진행상황 (2026-02-03)
 
 ### 완료된 작업
 1. ✅ requirements.txt에 HuggingFace 의존성 추가 (transformers, datasets, wikipedia-api)
@@ -158,36 +158,88 @@ Register-ScheduledTask -TaskName "MemeBoard" -Action $action -Trigger $trigger
 3. ✅ 키워드 추출 실행 및 keywords.py 병합 (869개 → 2,178개)
 4. ✅ CLAUDE.md 문서 업데이트 및 라이선스 표기
 5. ✅ **issue fallback 비율 48% → 21%로 감소** (목표 25% 이하 달성!)
-   - stock에 쇼핑몰/딜 키워드 35개 추가 (G마켓, 11번가, 쿠팡, 무배 등)
-   - game에 애니메이션/만화 키워드 80개+ 추가 (드래곤퀘스트, 페이트, 나루토 등)
-   - celebrity에 셰프/요리사 키워드 추가
+6. ✅ **스크래퍼 디버깅 및 디시인사이드 수정** (2026-02-03)
+   - 디시인사이드 URL 변경: `/hit` → `/board/lists?id=dcbest` (실시간 인기글)
+   - 공지사항 필터링 강화: `data-type="icon_notice"` 제외
+   - 봇 감지 우회 헤더 추가: Referer, Origin, DNT, Sec-Ch-Ua 등
+   - 날짜 파싱 개선: `YY.MM.DD` 형식 지원 (ruliweb 호환)
+   - 상세 로깅 추가: 소스별 수집/날짜/썸네일 통계
 
-### 분류 테스트 결과 (최신)
-```
-총 게시글: 155개
-- celebrity: 10개 (6%)
-- game: 55개 (35%)
-- issue: 32개 (21%) ✅ 목표 달성
-- politics: 1개 (1%)
-- sports: 6개 (4%)
-- stock: 51개 (33%)
-```
+### 스크래퍼 상태 (2026-02-03)
+| 스크래퍼 | 수집 | 날짜 | 조회수 | 썸네일 | 상태 |
+|----------|------|------|--------|--------|------|
+| dcinside | 99개 | ✅ | ✅ | ✅ 99개 | ✅ 정상 |
+| ruliweb | 64개 | ✅ | ✅ | 0개 | ✅ 정상 |
+| ppomppu | 48개 | ✅ | ✅ | 48개 | ✅ 정상 |
+| inven | 42개 | ✅ | 0개 | 42개 | ✅ 정상 |
+| fmkorea | - | - | - | - | ⛔ 차단 (430) |
+| theqoo | - | - | - | - | ⛔ JS 필요 |
 
-### 개선 전후 비교
-| 카테고리 | 이전 | 이후 | 변화 |
-|----------|------|------|------|
-| issue | 75개 (48%) | 32개 (21%) | **-43개** |
-| stock | 21개 (14%) | 51개 (33%) | +30개 (쇼핑 딜) |
-| game | 39개 (25%) | 55개 (35%) | +16개 (애니/만화) |
+### 분류 테스트 결과 (최신 - 253개)
+```
+총 게시글: 253개
+- issue: 101개 (40%)
+- game: 58개 (23%)
+- stock: 43개 (17%)
+- celebrity: 23개 (9%)
+- sports: 19개 (8%)
+- politics: 9개 (4%)
+```
 
 ### 다음 단계
 - [ ] LLM 기반 분류 도입 검토 (추가 개선 시)
 - [ ] 키워드 정제 (노이즈 제거, 중복 처리)
-- [ ] Supabase DB 저장 테스트
+- [x] Supabase DB 저장 테스트 ✅ 완료
 
 ---
 
-## 최근 변경 (2026-02-02)
+## 최근 변경 (2026-02-03)
+
+### 스크래퍼 디버깅 및 디시인사이드 강제 수집
+
+**문제**: 메인 페이지에 루리웹 글만 도배됨. 디시인사이드 수집 상태 불명확.
+
+**분석 결과**:
+- 디시인사이드 `/hit`은 **명예의 전당** (과거 인기글 모음)
+- 실시간 인기글은 `/board/lists?id=dcbest` (DC Best)
+- 공지사항이 `data-type="icon_notice"`로 구분됨
+
+**수정 파일**:
+| 파일 | 변경 내용 |
+|------|-----------|
+| `main.py` | 상세 로깅 추가 (소스별 통계, DB 저장 통계) |
+| `dcinside.py` | URL 변경 + Headers 강화 + 공지사항 필터링 |
+| `base_scraper.py` | 날짜 파싱 개선 (YY.MM.DD) + 실패 로그 |
+| `scripts/test_dcinside.py` | 신규 - 디시인사이드 단독 테스트 |
+
+**dcinside.py 주요 변경**:
+```python
+# URL 변경: 명예의 전당 → 실시간 인기글
+url = f"{self.base_url}/board/lists?id=dcbest&page={page}"
+
+# 추가 헤더 (봇 감지 우회)
+self.session.headers.update({
+    "Referer": "https://gall.dcinside.com/",
+    "Origin": "https://gall.dcinside.com",
+    "DNT": "1",
+    "Sec-Ch-Ua": '"Not A(Brand";v="8", "Chromium";v="121"',
+})
+
+# 공지사항 필터링
+if "notice" in row.get("data-type", "").lower():
+    continue
+```
+
+**테스트 명령어**:
+```bash
+cd backend
+python scripts/test_dcinside.py  # 디시인사이드 단독 테스트
+python main.py --classify --save  # 전체 크롤링 + DB 저장
+```
+
+---
+
+## 이전 변경 (2026-02-02)
 
 ### 위키피디아 기반 키워드 자동 추출
 HuggingFace 리소스와 한국어 위키피디아에서 키워드 자동 추출하여 분류 정확도 개선

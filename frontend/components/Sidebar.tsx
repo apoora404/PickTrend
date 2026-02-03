@@ -14,6 +14,7 @@ import {
   Sparkles,
   ArrowDown
 } from 'lucide-react'
+import AdSlot from '@/components/AdSlot'
 
 interface SidebarProps {
   selectedCategory: Category | null
@@ -110,6 +111,11 @@ export default function Sidebar({ selectedCategory, onSelectCategory, selectedTi
             </div>
           ))}
         </div>
+      </div>
+
+      {/* 사이드바 하단 광고 (PC 전용) */}
+      <div className="mt-auto p-4 border-t border-border-light">
+        <AdSlot position="sidebar" slot="sidebar-ad" />
       </div>
     </aside>
   )

@@ -1,10 +1,24 @@
 """디시인사이드 개념글 크롤러"""
 import re
+from datetime import datetime
 from .base_scraper import BaseScraper
 
 
 class DcinsideScraper(BaseScraper):
     """디시인사이드 개념글 크롤러"""
+
+    def __init__(self):
+        super().__init__()
+        # 디시인사이드 봇 감지 우회를 위한 추가 헤더
+        self.session.headers.update({
+            "Referer": "https://gall.dcinside.com/",
+            "Origin": "https://gall.dcinside.com",
+            "DNT": "1",
+            "Pragma": "no-cache",
+            "Sec-Ch-Ua": '"Not A(Brand";v="8", "Chromium";v="121", "Google Chrome";v="121"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+        })
 
     @property
     def source_name(self) -> str:
@@ -15,10 +29,12 @@ class DcinsideScraper(BaseScraper):
         return "https://gall.dcinside.com"
 
     def scrape(self, page: int = 1) -> list[dict]:
-        """개념글 크롤링 (hit 갤러리)"""
-        url = f"{self.base_url}/hit?page={page}"
+        """실시간 인기글 크롤링 (DC Best)"""
+        # hit 갤러리는 명예의 전당(과거 인기글)이므로 dcbest 사용
+        url = f"{self.base_url}/board/lists?id=dcbest&page={page}"
 
-        soup = self.fetch_page(url)
+        # Referer 설정
+        soup = self.fetch_page(url, referer="https://gall.dcinside.com/board/lists?id=dcbest")
         if not soup:
             return []
 
@@ -28,9 +44,22 @@ class DcinsideScraper(BaseScraper):
 
         for row in rows:
             try:
-                # 공지사항 제외
-                if "notice" in row.get("class", []):
+                # 공지사항 제외 (class에 notice 포함)
+                row_classes = row.get("class", [])
+                if any("notice" in c.lower() for c in row_classes):
                     continue
+
+                # data-type에 notice 포함 시 제외 (icon_notice 등)
+                data_type = row.get("data-type", "")
+                if "notice" in data_type.lower():
+                    continue
+
+                # 글번호가 숫자가 아닌 경우 제외 (설정, 공지 등)
+                num_elem = row.select_one("td.gall_num")
+                if num_elem:
+                    num_text = num_elem.get_text(strip=True)
+                    if not num_text.isdigit():
+                        continue
 
                 # 제목 추출
                 title_elem = row.select_one("td.gall_tit a:not(.reply_numbox)")
@@ -39,6 +68,10 @@ class DcinsideScraper(BaseScraper):
 
                 title = title_elem.get_text(strip=True)
                 href = title_elem.get("href", "")
+
+                # 유효하지 않은 URL 제외 (javascript:;, # 등)
+                if not href or href.startswith("javascript:") or href == "#":
+                    continue
 
                 # 전체 URL 생성
                 if href.startswith("/"):
@@ -69,9 +102,13 @@ class DcinsideScraper(BaseScraper):
                 date_elem = row.select_one("td.gall_date")
                 if date_elem:
                     # title 속성에 전체 날짜시간이 있음: "2026-02-01 12:34:56"
-                    # 없으면 텍스트에서 시간만: "12:34"
+                    # 없으면 텍스트에서 시간만: "12:34" 또는 "26/02/02" (YY/MM/DD)
                     date_str = date_elem.get("title") or date_elem.get_text(strip=True)
                     post_date = self._parse_date(date_str)
+
+                # 날짜가 None이면 오늘 날짜로 설정 (최신 글로 간주)
+                if post_date is None:
+                    post_date = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
                 # 썸네일 추출 (제목 옆 이미지 아이콘 또는 목록 이미지)
                 thumbnail_url = self.extract_thumbnail(row, [

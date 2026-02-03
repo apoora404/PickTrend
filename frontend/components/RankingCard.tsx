@@ -19,6 +19,15 @@ const sourceLabels: Record<string, { name: string; color: string }> = {
   inven: { name: '인벤', color: 'text-purple-500' },
 }
 
+// 커뮤니티별 폴백 스타일 (그라데이션 배경 + 텍스트)
+const sourceFallback: Record<string, { bg: string; text: string; label: string }> = {
+  dcinside: { bg: 'bg-gradient-to-br from-blue-600 to-blue-800', text: 'text-white', label: '디시인사이드' },
+  ruliweb: { bg: 'bg-gradient-to-br from-green-600 to-green-800', text: 'text-white', label: '루리웹' },
+  ppomppu: { bg: 'bg-gradient-to-br from-orange-500 to-orange-700', text: 'text-white', label: '뽐뿌' },
+  inven: { bg: 'bg-gradient-to-br from-purple-600 to-purple-800', text: 'text-white', label: '인벤' },
+}
+const defaultFallback = { bg: 'bg-gradient-to-br from-gray-600 to-gray-800', text: 'text-white', label: 'PickTrend' }
+
 // URL에서 출처 추출
 const getSourceFromUrl = (url: string): string | null => {
   if (url.includes('dcinside')) return 'dcinside'
@@ -48,14 +57,15 @@ const categoryTags: Record<string, string[]> = {
   issue: ['#실시간', '#인기', '#트렌드'],
 }
 
-// 플레이스홀더 이미지 (fallback)
+// 플레이스홀더 이미지 - 더 이상 사용하지 않음 (색상 배경 폴백으로 대체)
+// 유지 이유: 이전 버전 호환성
 const placeholderImages: Record<string, string> = {
-  politics: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&h=250&fit=crop',
-  sports: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&h=250&fit=crop',
-  celebrity: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=250&fit=crop',
-  stock: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=250&fit=crop',
-  game: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=250&fit=crop',
-  issue: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=250&fit=crop',
+  politics: '',
+  sports: '',
+  celebrity: '',
+  stock: '',
+  game: '',
+  issue: '',
 }
 
 // 이미지 URL을 프록시 URL로 변환 (Hotlinking 우회)
@@ -82,28 +92,33 @@ const isProxyUrl = (url: string): boolean => url.startsWith('/api/image')
 export default function RankingCard({ ranking, rank, priority = false }: RankingCardProps & { priority?: boolean }) {
   const badge = categoryBadges[ranking.category] || categoryBadges.issue
   const tags = categoryTags[ranking.category] || categoryTags.issue
-  const placeholderUrl = placeholderImages[ranking.category] || placeholderImages.issue
 
-  // 이미지 URL 우선순위: thumbnail_url > image_url > placeholder
-  const primaryImageUrl = getProxiedImageUrl(
-    ranking.thumbnail_url || ranking.image_url,
-    placeholderUrl
-  )
+  // 출처 정보 추출 (폴백용)
+  const sourceUrl = ranking.source_urls?.[0] || null
+  const sourceName = ranking.source || (sourceUrl ? getSourceFromUrl(sourceUrl) : null)
+  const fallbackStyle = sourceName ? sourceFallback[sourceName] : defaultFallback
+
+  // 이미지 URL 우선순위: thumbnail_url > image_url > null (색상 폴백)
+  const hasOriginalImage = !!(ranking.thumbnail_url || ranking.image_url)
+  const primaryImageUrl = hasOriginalImage
+    ? getProxiedImageUrl(ranking.thumbnail_url || ranking.image_url, '')
+    : ''
 
   // 이미지 로드 실패 시 fallback
   const [imageUrl, setImageUrl] = useState(primaryImageUrl)
-  const [imageError, setImageError] = useState(false)
+  const [imageError, setImageError] = useState(!hasOriginalImage)
 
   const handleImageError = () => {
     if (!imageError) {
       setImageError(true)
-      setImageUrl(placeholderUrl) // Unsplash placeholder는 프록시 불필요
+      setImageUrl('') // 색상 폴백으로 전환
     }
   }
 
-  // 출처 정보 추출
-  const sourceUrl = ranking.source_urls?.[0] || null
-  const sourceName = ranking.source || (sourceUrl ? getSourceFromUrl(sourceUrl) : null)
+  // 유효한 이미지가 있는지 확인
+  const hasValidImage = imageUrl && !imageError
+
+  // 출처 정보 (라벨 표시용)
   const sourceInfo = sourceName ? sourceLabels[sourceName] : null
 
   const formatNumber = (num: number) => {
@@ -124,17 +139,38 @@ export default function RankingCard({ ranking, rank, priority = false }: Ranking
       {/* 썸네일 이미지 - 상세 페이지로 연결 */}
       <Link href={detailUrl}>
         <div className="relative w-full aspect-[16/10] bg-gray-200 overflow-hidden cursor-pointer">
-          <Image
-            src={imageUrl}
-            alt={ranking.keyword}
-            width={400}
-            height={250}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            unoptimized={needsUnoptimized}
-            onError={handleImageError}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
-            priority={priority}
-          />
+          {hasValidImage ? (
+            <Image
+              src={imageUrl}
+              alt={ranking.keyword}
+              width={400}
+              height={250}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              unoptimized={needsUnoptimized}
+              onError={handleImageError}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+              priority={priority}
+            />
+          ) : (
+            /* 스마트 썸네일: 본문 100자 말풍선 디자인 */
+            <div className={`w-full h-full ${fallbackStyle.bg} p-4 flex items-center justify-center transition-transform duration-300 group-hover:scale-105`}>
+              {/* 말풍선 컨테이너 */}
+              <div className="bg-white/95 dark:bg-gray-100 rounded-xl p-3 shadow-lg max-w-[90%] relative">
+                {/* 말풍선 꼬리 */}
+                <div className="absolute -bottom-2 left-6 w-4 h-4 bg-white/95 dark:bg-gray-100 rotate-45"></div>
+
+                {/* 본문 미리보기 텍스트 */}
+                <p className="text-gray-800 text-sm leading-relaxed line-clamp-3">
+                  "{(ranking.summary || ranking.keyword).slice(0, 100)}{(ranking.summary || ranking.keyword).length > 100 ? '...' : ''}"
+                </p>
+
+                {/* 출처 라벨 */}
+                <span className="text-xs text-gray-500 mt-2 block text-right">
+                  - {fallbackStyle.label}
+                </span>
+              </div>
+            </div>
+          )}
           {/* 카테고리 뱃지 */}
           <span className={`absolute top-3 left-3 px-3 py-1 text-xs font-bold rounded-full ${badge.bgColor} ${badge.textColor}`}>
             {badge.label}

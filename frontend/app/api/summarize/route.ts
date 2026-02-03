@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
       ? bestComments.map((c, i) => `${i + 1}. ${c.likes ? `(${c.likes}추천) ` : ''}"${c.content}"`).join('\n')
       : '(수집된 댓글 없음)'
 
-    // MZ 스타일 프롬프트 (이모지 + 찰진 말투 + 댓글 맥락)
+    // 간결한 프롬프트 (한 줄 요약 + 커뮤니티 반응 한 줄)
     const prompt = `너는 한국 커뮤니티 트렌드를 요약하는 MZ세대 에디터야.
 존댓말 NO, 반말 OK. 짧고 임팩트 있게 핵심만 전달해.
 
@@ -291,13 +291,9 @@ ${commentsForPrompt}
 결국 사과문 올렸는데 반응은 싸늘함 💀
 
 [커뮤니티 반응]
-베스트 댓글 분석해서 여론의 핵심을 1-2줄로 정리해.
-"ㅋㅋ", "ㄹㅇ", "ㅇㅈ", "레전드", "역대급" 같은 커뮤 표현 적극 사용.
-실제 댓글 인용하면 더 좋음.
-
-[베스트 댓글 선별]
-가장 공감이 많거나 재밌는 댓글 2-3개를 선별해서 원문 그대로 인용해.
-각 줄에 하나씩, 따옴표로 감싸서.`
+댓글들의 전체적인 분위기를 파악해서 딱 한 문장으로 요약해.
+형식: "현재 커뮤니티는 ___한 반응입니다." 또는 "여론은 ___한 분위기."
+예시: "현재 커뮤니티는 찬반이 팽팽한 반응입니다." / "여론은 비판 일색인 분위기."`
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -330,31 +326,18 @@ ${commentsForPrompt}
 
     // 응답 파싱
     const aiSummaryMatch = fullText.match(/\[AI 핵심 요약\]([\s\S]*?)(?=\[커뮤니티 반응\]|$)/i)
-    const communityMatch = fullText.match(/\[커뮤니티 반응\]([\s\S]*?)(?=\[베스트 댓글 선별\]|$)/i)
-    const bestCommentsMatch = fullText.match(/\[베스트 댓글 선별\]([\s\S]*?)$/i)
+    const communityMatch = fullText.match(/\[커뮤니티 반응\]([\s\S]*?)$/i)
 
-    const ai_summary = aiSummaryMatch ? aiSummaryMatch[1].trim() : fullText
+    // AI 응답에서 레이블 제거 (발단, 전개, 결말, 1., 2., 3. 등)
+    const rawSummary = aiSummaryMatch ? aiSummaryMatch[1].trim() : fullText
+    const ai_summary = rawSummary
+      .replace(/^(발단|전개|결말|첫째|둘째|셋째)[:\s]*/gim, '')
+      .replace(/^\d+[\.\)]\s*/gm, '')
+      .trim()
     const community_reaction = communityMatch ? communityMatch[1].trim() : null
 
-    // AI가 선별한 베스트 댓글 파싱 (또는 원본 사용)
-    let finalBestComments: BestComment[] = bestComments
-    if (bestCommentsMatch) {
-      const aiSelectedComments = bestCommentsMatch[1]
-        .split('\n')
-        .map((line: string) => line.trim())
-        .filter((line: string) => line.startsWith('"') || line.includes('"'))
-        .map((line: string) => {
-          // "댓글 내용" 형태에서 내용 추출
-          const match = line.match(/"([^"]+)"/)
-          return match ? { content: match[1] } : null
-        })
-        .filter((c: BestComment | null): c is BestComment => c !== null)
-        .slice(0, 3)
-
-      if (aiSelectedComments.length > 0) {
-        finalBestComments = aiSelectedComments
-      }
-    }
+    // 베스트 댓글은 크롤링에서 수집한 원본 사용
+    const finalBestComments: BestComment[] = bestComments
 
     // 5. DB에 캐싱 (thumbnail_url, best_comments 포함)
     const updateData: Record<string, unknown> = {
